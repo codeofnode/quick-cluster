@@ -25,8 +25,8 @@ patch_isito_gateway() {
   cluster=$(get_cluster)
   $DIR/sandbox/bin/yq w -i -d0 apigw/istio.yaml metadata.name $cluster-gateway
   $DIR/sandbox/bin/yq w -i -d* apigw/istio.yaml metadata.namespace $cluster
-  $DIR/sandbox/bin/yq w -i -d1 apigw/istio.yaml metadata.name $cluster
-  $DIR/sandbox/bin/yq w -i -d1 apigw/istio.yaml "spec.gateways[0]" $cluster-gateway
+  $DIR/sandbox/bin/yq w -i -d2 apigw/istio.yaml metadata.name $cluster
+  $DIR/sandbox/bin/yq w -i -d2 apigw/istio.yaml "spec.gateways[0]" $cluster-gateway
 }
 
 download_tools() {
@@ -70,7 +70,7 @@ setup_svcs() {
   nc=0
   cluster_type=`cat $DIR/sandbox/clusterkind`
   if [ "$cluster_type" == "istio" ]; then
-    routeRule=$($DIR/sandbox/bin/yq r -d1 ../apigw/istio.yaml spec.http | sed -e 's/^/  /')
+    routeRule=$($DIR/sandbox/bin/yq r -d2 ../apigw/istio.yaml spec.http | sed -e 's/^/  /')
   fi
   for ns in $(get_namespaces); do 
     ss=0

@@ -17,6 +17,22 @@ spec:
     hosts:
     - "*"
 ---
+apiVersion: authentication.istio.io/v1alpha1
+kind: Policy
+metadata:
+  name: jwt
+spec:
+  targets:
+  - name: vs
+  origins:
+  - jwt:
+      issuer: testing@secure.istio.io
+      jwksUri: https://raw.githubusercontent.com/istio/istio/release-1.4/security/tools/jwt/samples/jwks.json
+      trigger_rules:
+      - excluded_paths:
+        - prefix: "/svc2/"
+  principalBinding: USE_ORIGIN
+---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
