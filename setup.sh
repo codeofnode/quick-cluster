@@ -124,8 +124,12 @@ svc_setup() {
   nc=0
   for ns in $(get_namespaces); do 
     for sc in $(get_services $nc); do 
-      $DIR/sandbox/bin/helm install $sc ./mockserver/helm/mockserver --namespace $ns -f ./mockserver/helm/$ns-$sc-config/values.yaml
-      $DIR/sandbox/bin/helm install $ns-$sc-config ./mockserver/helm/$ns-$sc-config --namespace $ns
+      if [ "$nc" == "0" ]; then
+        $DIR/sandbox/bin/helm install $sc ./mockserver/helm/mockserver --namespace $ns -f ./mockserver/helm/$ns-$sc-config/values.yaml
+        $DIR/sandbox/bin/helm install $ns-$sc-config ./mockserver/helm/$ns-$sc-config --namespace $ns
+      else
+        echo cd $DIR/sandbox\; $DIR/sandbox/bin/helm install $sc ./mockserver/helm/mockserver --namespace $ns -f ./mockserver/helm/$ns-$sc-config/values.yaml\; $DIR/sandbox/bin/helm install $ns-$sc-config ./mockserver/helm/$ns-$sc-config --namespace $ns
+      fi
     done
     nc=$[$nc +1]
   done
