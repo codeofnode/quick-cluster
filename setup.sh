@@ -128,7 +128,7 @@ svc_setup() {
         $DIR/sandbox/bin/helm install $sc ./mockserver/helm/mockserver --namespace $ns -f ./mockserver/helm/$ns-$sc-config/values.yaml
         $DIR/sandbox/bin/helm install $ns-$sc-config ./mockserver/helm/$ns-$sc-config --namespace $ns
       else
-        echo cd $DIR/sandbox\; $DIR/sandbox/bin/helm install $sc ./mockserver/helm/mockserver --namespace $ns -f ./mockserver/helm/$ns-$sc-config/values.yaml\; $DIR/sandbox/bin/helm install $ns-$sc-config ./mockserver/helm/$ns-$sc-config --namespace $ns
+        echo pushd $DIR/sandbox \> /dev/null\; $DIR/sandbox/bin/helm install $sc ./mockserver/helm/mockserver --namespace $ns -f ./mockserver/helm/$ns-$sc-config/values.yaml\; $DIR/sandbox/bin/helm install $ns-$sc-config ./mockserver/helm/$ns-$sc-config --namespace $ns\; popd
       fi
     done
     nc=$[$nc +1]
