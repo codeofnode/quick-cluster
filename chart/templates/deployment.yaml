@@ -1,0 +1,135 @@
+{{- range $sii, $e := until (.Values.deploymentCount|int) -}}
+{{- printf "\n" -}}
+{{- $si := add1 $sii -}}
+{{- $selfSecretVolume := printf "secret-%s-%d-volume" (include "chart.fullname" $) $si }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{- printf "%s-%d" (include "chart.fullname" $) $si }}"
+  labels:
+    myapp/servicenumber: "{{- printf "%d" $si }}"
+    {{- include "chart.labels" $ | nindent 4 }}
+spec:
+  {{- if not $.Values.autoscaling.enabled }}
+  replicas: {{ $.Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      myapp/servicenumber: "{{- printf "%d" $si }}"
+      {{- include "chart.selectorLabels" $ | nindent 6 }}
+  template:
+    metadata:
+      {{- with $.Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        myapp/servicenumber: "{{- printf "%d" $si }}"
+        {{- include "chart.selectorLabels" $ | nindent 8 }}
+        {{- include "chart.myappLabels" $ | nindent 8 }}
+    spec:
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "chart.serviceAccountName" $ }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: "{{ $.Values.myapp.kind }}-{{ $.Values.myapp.type }}"
+          securityContext:
+            {{- if  $.Values.debugMode }}
+            runAsNonRoot: false
+            runAsUser: 1000
+            {{- else }}
+            {{- toYaml $.Values.securityContext | nindent 12 }}
+            {{- end }}
+          image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag | default $.Chart.AppVersion }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          command:
+            {{- include "chart.startingCommand" $ | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: REQRES_DEBUG
+              value: {{ default 1 $.Values.myapp.debugLevel | quote }}
+          {{- if eq $.Values.myapp.type "http" }}
+          {{- if and (not $.Values.debugMode) (ne $.Values.myapp.kind "client") }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml $.Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app
+            {{- if or (eq $.Values.myapp.type "http2") (eq $.Values.myapp.type "https") }}
+            {{- $foundDestinations := dict }}
+            {{- if ne $.Values.myapp.kind "client" }}
+            {{- $_ := set $foundDestinations $selfSecretVolume true }}
+            - name: {{ $selfSecretVolume }}
+              readOnly: true
+              mountPath: /certs/{{ include "chart.fullname" $ }}-{{ $si }}
+            {{- end }}
+            {{- range $ri, $rv := $.Values.traffics -}}
+            {{- if ne $rv.type "http" }}
+            {{- $mountName := printf "secret-%s-%d-volume" (first $rv.to) (index $rv.to 1 | int) }}
+            {{- if not (hasKey $foundDestinations $mountName) }}
+            {{- $_ := set $foundDestinations $mountName true }}
+            - name: {{ $mountName }}
+              readOnly: true
+              mountPath: "{{- printf "/certs/%s-%d" (first $rv.to) (index $rv.to 1 | int) }}"
+            {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: "{{- printf "%s-%d" (include "chart.fullname" $) $si }}-config"
+            optional: false
+        {{- if or (eq $.Values.myapp.type "http2") (eq $.Values.myapp.type "https") }}
+        {{- $foundSecrets := dict }}
+        {{- if ne $.Values.myapp.kind "client" }}
+        {{- $_ := set $foundSecrets $selfSecretVolume true }}
+        - name: {{ $selfSecretVolume }}
+          secret:
+            secretName: {{ include "chart.fullname" $ }}-{{ $si }}-secret
+            optional: false
+        {{- end }}
+        {{- range $ri, $rv := $.Values.traffics -}}
+        {{- if ne $rv.type "http" }}
+        {{- $volName := printf "secret-%s-%d-volume" (first $rv.to) (index $rv.to 1 | int) }}
+        {{- if not (hasKey $foundSecrets $volName) }}
+        {{- $_ := set $foundSecrets $volName true }}
+        - name: {{ $volName }}
+          secret:
+            secretName: "{{- printf "%s-%d-secret" (first $rv.to) (index $rv.to 1 | int) }}"
+            optional: false
+        {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+      {{- with $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

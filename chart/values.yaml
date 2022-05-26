@@ -1,0 +1,93 @@
+# Default values for chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+debugMode: false
+deploymentCount: REPLACE_DEPLOYMENT_COUNT  # how many such deployments will be created
+replicaCount: REPLACE_REPLICA_COUNT  # how many pods in each deployment
+
+image:
+  repository: "codeofnode/allrounder"
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "0.8.5"
+
+imagePullSecrets: []
+nameOverride: "REPLACE_SERVICE_NAME"
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  # port: 80  # keep it simple 80 for http and 443 for https/http2
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: "REPLACE_SERVICE_NAME.local"
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: "REPLACE_SERVICE_NAME-tls"
+  #    hosts:
+  #      - "REPLACE_SERVICE_NAME.local"
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+ssl:
+  generateTLS: true
+  defaultCN: "REPLACE_SERVICE_NAME.local"
+  defaultCert: "REPLACE_PAIR_CERT"
+  defaultKey: "REPLACE_PAIR_KEY"
+
+myapp:
+  kind: "REPLACE_SERVICE_KIND"  # client or server or clientserver for both
+  type: "REPLACE_SERVICE_TYPE"  # http or http2 or https

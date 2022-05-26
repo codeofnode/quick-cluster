@@ -1,0 +1,75 @@
+{{- range $sii, $e := until (.Values.deploymentCount|int) -}}
+{{- printf "\n" -}}
+{{- $si := add1 $sii -}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{- printf "%s-%d" (include "chart.fullname" $) $si }}-config"
+  labels:
+    myapp/servicenumber: "{{- printf "%d" $si }}"
+    {{- include "chart.myappLabels" $ | nindent 4 }}
+data:
+  server.json: |-
+    {
+      "vars":{
+        "app": {
+          "name": "{{- printf "%s-%d" (include "chart.fullname" $) $si }}",
+          "version": "{{ $.Chart.AppVersion }}"
+        }
+      }
+    }
+  requests.json: |-
+    {
+      {{- if ne $.Values.myapp.kind "server" }}
+      "type": "rest",
+      "tests" : [
+        {{- $reqAdded := 0 -}}
+        {{- range $ri, $rv := $.Values.traffics -}}
+        {{- if and (eq (printf "%s-%d" (first $rv.from) (index $rv.from 1 | int)) (printf "%s-%d" (include "chart.fullname" $) $si)) (eq $.Values.myapp.type $rv.type) -}}
+          {{- if $reqAdded -}}
+            {{- printf "," -}}
+          {{- end -}}
+          {{- $reqAdded = add1 $reqAdded }}
+          {
+            "timeout": 99999999999,
+            {{- if ($rv.sleepDigits | int) }}
+            "sleep": {{- randNumeric ($rv.sleepDigits | int) | replace "0" "9" | int }},
+            {{- end }}
+            "looping": {
+              "source": 2500,
+              "batch": 999999
+            },
+            "request": {
+              "url": {{- printf "%s://%s-%d.%s.svc.cluster.local" (ternary "http" "https" (eq $.Values.myapp.type "http")) (first $rv.to) (index $rv.to 1 | int) $.Release.Namespace | quote }}
+              {{- if or (eq $.Values.myapp.type "http2") (eq $.Values.myapp.type "https") -}},
+              "caFile":{{- printf "/certs/%s-%d/tls.crt" (first $rv.to) (index $rv.to 1 | int) | quote }}
+              {{- end }}
+              {{- if eq $.Values.myapp.type "http2" -}},
+              "http2Options": true
+              {{- end -}},
+              "method": "GET"
+            }
+          }
+        {{- end }}
+        {{- end }}
+      ]
+      {{- end }}
+    }
+  j2s.json: |-
+    {
+      {{- if ne $.Values.myapp.kind "client" }}
+      {{- if eq $.Values.myapp.type "http2" }}
+      "http2": {
+        "allowHTTP1": true
+      },
+      {{- end }}
+      {{- if or (eq $.Values.myapp.type "http2") (eq $.Values.myapp.type "https") }}
+      "httpsConfig": {
+        "key": {{- printf "/certs/%s-%d/tls.key" (include "chart.fullname" $) $si | quote }},
+        "cert": {{- printf "/certs/%s-%d/tls.crt" (include "chart.fullname" $) $si | quote }}
+      }
+      {{- end }}
+      {{- end }}
+    }
+{{- end }}

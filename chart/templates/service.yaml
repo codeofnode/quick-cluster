@@ -1,0 +1,22 @@
+{{- range $sii, $e := until (.Values.deploymentCount|int) -}}
+{{- printf "\n" }}
+{{- $si := add1 $sii }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{- printf "%s-%d" (include "chart.fullname" $) $si }}"
+  labels:
+    myapp/servicenumber: "{{- printf "%d" $si }}"
+    {{- include "chart.labels" $ | nindent 4 }}
+spec:
+  type: {{ $.Values.service.type }}
+  ports:
+    - port: {{ ternary 80 443 (eq $.Values.myapp.type "http") }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    myapp/servicenumber: "{{- printf "%d" $si }}"
+    {{- include "chart.selectorLabels" $ | nindent 4 }}
+{{- end }}
