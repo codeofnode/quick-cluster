@@ -74,24 +74,14 @@ spec:
             - name: config-volume
               mountPath: /app
             {{- if or (eq $.Values.myapp.type "http2") (eq $.Values.myapp.type "https") }}
-            {{- $foundDestinations := dict }}
             {{- if ne $.Values.myapp.kind "client" }}
-            {{- $_ := set $foundDestinations $selfSecretVolume true }}
             - name: {{ $selfSecretVolume }}
               readOnly: true
               mountPath: /certs/{{ include "chart.fullname" $ }}-{{ $si }}
             {{- end }}
-            {{- range $ri, $rv := $.Values.traffics -}}
-            {{- if ne $rv.type "http" }}
-            {{- $mountName := printf "secret-%s-%d-volume" (first $rv.to) (index $rv.to 1 | int) }}
-            {{- if not (hasKey $foundDestinations $mountName) }}
-            {{- $_ := set $foundDestinations $mountName true }}
-            - name: {{ $mountName }}
+            - name: ca-certs
               readOnly: true
-              mountPath: "{{- printf "/certs/%s-%d" (first $rv.to) (index $rv.to 1 | int) }}"
-            {{- end }}
-            {{- end }}
-            {{- end }}
+              mountPath: /cacerts
             {{- end }}
       volumes:
         - name: config-volume
@@ -99,35 +89,37 @@ spec:
             name: "{{- printf "%s-%d" (include "chart.fullname" $) $si }}-config"
             optional: false
         {{- if or (eq $.Values.myapp.type "http2") (eq $.Values.myapp.type "https") }}
-        {{- $foundSecrets := dict }}
         {{- if ne $.Values.myapp.kind "client" }}
-        {{- $_ := set $foundSecrets $selfSecretVolume true }}
         - name: {{ $selfSecretVolume }}
           secret:
             secretName: {{ include "chart.fullname" $ }}-{{ $si }}-secret
             optional: false
         {{- end }}
-        {{- range $ri, $rv := $.Values.traffics -}}
-        {{- if ne $rv.type "http" }}
-        {{- $volName := printf "secret-%s-%d-volume" (first $rv.to) (index $rv.to 1 | int) }}
-        {{- if not (hasKey $foundSecrets $volName) }}
-        {{- $_ := set $foundSecrets $volName true }}
-        - name: {{ $volName }}
+        - name: ca-certs
           secret:
-            secretName: "{{- printf "%s-%d-secret" (first $rv.to) (index $rv.to 1 | int) }}"
+            secretName: "{{- printf "%s-ca-cert" ($.Values.myapp.clusterName) }}"
             optional: false
-        {{- end }}
-        {{- end }}
-        {{- end }}
         {{- end }}
       {{- with $.Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with $.Values.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                  {{- if eq (mod $sii 9) 0 }}
+                  - {{ $.Values.myapp.clusterName }}-control-plane
+                  {{- else if eq (mod $sii 9) 1 }}
+                  - {{ $.Values.myapp.clusterName }}-worker
+                  {{- else }}
+                  - {{ $.Values.myapp.clusterName }}-worker{{ mod $sii 9 }}
+                  {{- end }}
       {{- with $.Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}

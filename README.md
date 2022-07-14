@@ -3,9 +3,10 @@ A quick k8s cluster made with different services talking to each other, with dif
 
 # requirements
 docker v20.10+
+kubectl v1.24.0+
 kind ~v0.14+
 helm ~v3.9+
-helm ~v4.4+
+yq ~v4.25+
 
 # cluster.yaml
 This file defines how the cluster look like and what is expected traffic to be flown between services
@@ -20,7 +21,7 @@ cluster:
     ...
 traffics:
   - type: http  # http or https or http2, what kind of network traffic to be generated
-    sleepDigits: 0  # sleep before first request just to make real world kind of scenario, 
+    randomSleepDigits: 0  # sleep before first request, and all subsequent requests, just to make real world kind of scenario, 
       a random number of specific digits, set 0 for no sleep
     from:
       - <one of deployment names which has type == client or clientserver>  # client or clientserver

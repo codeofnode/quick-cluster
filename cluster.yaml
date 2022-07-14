@@ -1,74 +1,45 @@
 cluster:
-  server1:
+  server:
     kind: server  # client or server or both
     type: http  # http or http2 or https
-    count: 2
-    podCount: 2
-  server2:
-    kind: server  # client or server or both
-    type: http2  # http or http2 or https
-    count: 2
+    count: 1
     podCount: 1
-  server3:
+  server-tls:
     kind: server  # client or server or both
     type: https  # http or http2 or https
     count: 1
-    podCount: 2
-  client1:
-    kind: client  # client or service or both
-    type: http2  # http or http2 or https
-    count: 2
-    podCount: 2
-  client2:
-    kind: client  # client or service or both
-    type: http  # http or http2 or https
-    count: 2
-    podCount: 2
-  clientserver1:  # acting as both client and servers
-    kind: clientserver  # acting as both
-    type: http2  # http or http2 or https
-    count: 2
-    podCount: 5
-  clientserver2:  # acting as both client and servers
-    kind: clientserver  # acting as both
-    type: http  # http or http2 or https
-    count: 3
     podCount: 1
-  clientserver3:  # acting as both client and servers
-    kind: clientserver  # acting as both
+  client:
+    kind: client  # client or server or both
+    type: http  # http or http2 or https
+    count: 1
+    podCount: 1
+  client-tls:
+    kind: client  # client or server or both
     type: https  # http or http2 or https
     count: 1
     podCount: 1
 traffics:
-  - type: http2  # http or https or http2
-    sleepDigits: 4  # sleep before first request, 4 means random duration between (1000-9999 ms or 1-10 seconds) a random number of specific digits, set 0 for no sleep
+  - type: http  # http or https or http2
+    randomSleepDigits: 4  # sleep before first request, 4 means random duration between (1000-9999 ms or 1-10 seconds) a random number of specific digits, set 0 for no sleep
     from:
-      - client1  # one of client or clientserver kind deployment name
+      - client  # one of client or clientserver kind deployment name
       - 1  # index of that deployment, base 1
     to:
-      - server2  # one of server or clientserver kind deployment name
-      - 2  # index of that deployment, base 1
-  - type: http
-    sleepDigits: 4
+      - server  # one of server or clientserver kind deployment name
+      - 1  # index of that deployment, base 1
+    data:
+      requestPath: /random/path?query1=3&query2=2398423
+  - type: https  # http or https or http2
+    randomSleepDigits: 4  # sleep before first request, 4 means random duration between (1000-9999 ms or 1-10 seconds) a random number of specific digits, set 0 for no sleep
     from:
-      - client2
-      - 1
+      - client-tls  # one of client or clientserver kind deployment name
+      - 1  # index of that deployment, base 1
     to:
-      - clientserver2
-      - 3
-  - type: https
-    sleepDigits: 4
-    from:
-      - clientserver3
-      - 1
-    to:
-      - server3
-      - 1
-  - type: http2
-    sleepDigits: 4
-    from:
-      - clientserver1
-      - 2
-    to:
-      - server2
-      - 1
+      - server-tls  # one of server or clientserver kind deployment name
+      - 1  # index of that deployment, base 1
+    data:
+      requestPath: /message
+      method: POST
+      payload:
+        message: "secret"

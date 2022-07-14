@@ -10,7 +10,7 @@ image:
   repository: "codeofnode/allrounder"
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "0.8.5"
+  tag: "0.8.6"
 
 imagePullSecrets: []
 nameOverride: "REPLACE_SERVICE_NAME"
@@ -84,10 +84,13 @@ affinity: {}
 
 ssl:
   generateTLS: true
+  base64CACert: "REPLACE_BASE64_CA_CERT"
+  base64CAKey: "REPLACE_BASE64_CA_KEY"
   defaultCN: "REPLACE_SERVICE_NAME.local"
   defaultCert: "REPLACE_PAIR_CERT"
   defaultKey: "REPLACE_PAIR_KEY"
 
 myapp:
+  clusterName: "REPLACE_CLUSTER_NAME"
   kind: "REPLACE_SERVICE_KIND"  # client or server or clientserver for both
   type: "REPLACE_SERVICE_TYPE"  # http or http2 or https

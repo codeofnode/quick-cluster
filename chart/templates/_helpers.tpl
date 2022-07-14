@@ -65,7 +65,7 @@ Create the command to start container with
 - "sleep"
 - "1000000"
 {{- else }}
-{{- $clientCommand := "while true; do allrounder -i -d $ requests.json; sleep 30; done" }}
+{{- $clientCommand := "while true; do allrounder -d $ requests.json; sleep 30; done" }}
 {{- $serverCommand := "/usr/local/lib/node_modules/allrounder/node_modules/json2server/bin/json2server" }}
 {{- if eq .Values.myapp.kind "client" }}
 - sh
